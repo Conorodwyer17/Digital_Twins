@@ -41,6 +41,13 @@ simple_robot_ws/
 - X11 display server (for GUI applications like RViz and Gazebo)
 - Linux system (tested on Ubuntu)
 
+### Note: ensure you have the correct permissions for docker and x11. In the host terminal, run:
+
+```bash
+xhost +local:docker
+```
+It is also recommended to add this to the ~/.bashrc file
+
 ## Quick Start
 
 ### 1. Build the Docker Image
