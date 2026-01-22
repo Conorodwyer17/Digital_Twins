@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  ros2_humble:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: simple_robot_sim
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
+    volumes:
+      - ./:/home/ros_user/workspace
+    network_mode: "host"
+    stdin_open: true
+    tty: true
+    privileged: true
