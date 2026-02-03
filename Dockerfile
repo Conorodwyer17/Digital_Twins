@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     git \
     build-essential \
+    cmake \
     && rm -rf /var/lib/apt/lists/*
 
 # Add OSRF Gazebo repository for Gazebo Classic (11)
