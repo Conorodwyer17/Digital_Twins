@@ -18,117 +18,214 @@
     <color rgba="0 0 0 1"/>
   </material>
 
-  <!-- BASE LINK -->
+  <!-- BASE LINK - Root coordinate frame, no inertia needed -->
   <link name="base_link">
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="0.1"/>
-      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
-    </inertial>
   </link>
 
-  <!-- CHASSIS -->
+  <!-- CHASSIS - Roomba 105 specs: 0.336m × 0.335m × 0.104m (33.6cm × 33.5cm × 10.4cm), ~2.84kg -->
+  <!-- 
+    GEOMETRY SETUP - EXTERNAL WHEELS, HALF-EMBEDDED (matching assignment brief):
+    - Chassis width (Y): 0.335m, half-width = 0.1675m
+    - Wheels EXTERNAL: positioned at y=±0.20m (OUTSIDE chassis, not underneath)
+    - Wheel radius: 0.033m (1.3 inches)
+    - Wheel center at z=0.033m (wheel radius) ensures ground contact
+    - Wheel bottom at z=0m (ground), wheel top at z=0.066m
+    - Chassis bottom at z=0.033m (wheel center) for 50% wheel embedding
+    - Half wheel below chassis (z=0 to 0.033m), half above (z=0.033m to 0.066m)
+    - Chassis center = wheel_center + half_chassis_height = 0.033 + 0.052 = 0.085m
+    - Chassis top = 0.085 + 0.052 = 0.137m
+    - Wheel separation = 0.40m (0.20m × 2, external mounting)
+    
+    Center of Mass (CRITICAL for stability - FIXED to center within support triangle for horizontal balance):
+    - Real Roomba: ~3.2kg total, COM centered for stability
+    - FIXED: Chassis: 2.0kg - main mass, COM at x=-0.02m (slightly backward to prevent backward tilt)
+    - FIXED: LiDAR: 0.05kg at top (z≈0.17, x≈0.0) - centered, minimal moment
+    - FIXED: Wheels: 0.4kg total (0.2kg each) at wheel axis (z=0.033, x=-0.084) - rear support point
+    - FIXED: Caster: 0.4kg at front (x=0.12, y=0, z=0.025) - closer to chassis, better support
+    - Support triangle: Rear wheels at x=-0.084m, Caster at x=0.12m (0.204m span)
+    - FIXED: Overall COM ≈ -0.009m (slightly backward) - prevents backward tilt while maintaining stability
+    - This ensures robot sits perfectly level on ALL THREE wheels: two rear wheels + front center caster
+    - Physics: Centered COM within support triangle prevents tipping, maintains horizontal orientation
+  -->
   <joint name="chassis_joint" type="fixed">
     <parent link="base_link"/>
     <child link="chassis"/>
-    <origin xyz="-0.1 0 0"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
   </joint>
 
   <link name="chassis">
+    <!-- Chassis geometry: centered at z=0.085m (bottom at z=0.033m, wheel center) -->
     <visual>
-      <origin xyz="0.15 0 0.075" rpy="0 0 0"/>
+      <origin xyz="0 0 0.085" rpy="0 0 0"/>
       <geometry>
-        <box size="0.3 0.3 0.15"/>
+        <box size="0.336 0.335 0.104"/>
       </geometry>
       <material name="white"/>
     </visual>
     <collision>
-      <origin xyz="0.15 0 0.075" rpy="0 0 0"/>
+      <origin xyz="0 0 0.085" rpy="0 0 0"/>
       <geometry>
-        <box size="0.3 0.3 0.15"/>
+        <box size="0.336 0.335 0.104"/>
       </geometry>
     </collision>
-    <xacro:inertial_box mass="0.5" x="0.3" y="0.3" z="0.15">
-      <origin xyz="0.15 0 0.075" rpy="0 0 0"/>
+    <!-- 
+      FIXED: Inertial properties - COM shifted slightly backward to compensate for backward tilt
+      - Mass: 2.0kg (balanced for stability)
+      - COM: x=-0.02m (slightly backward from center to compensate for backward tilt)
+      - COM: z=0.085m (geometric center of chassis)
+      - This shifts overall COM backward to prevent backward tilt
+      - CALCULATION: Overall COM with chassis at x=-0.02m, rear wheels at x=-0.084m (0.4kg total), caster at x=0.12m (mass=0.4kg):
+        * Chassis: 2.0kg × -0.02m = -0.04 kg·m
+        * LiDAR: 0.05kg × 0.0m = 0.0 kg·m
+        * Rear wheels: 0.4kg × -0.084m = -0.0336 kg·m
+        * Caster: 0.4kg × 0.12m = 0.048 kg·m
+        * Total: 2.85kg, moment = -0.0256 kg·m
+        * Overall x_COM = -0.0256/2.85 ≈ -0.009m (slightly backward, balanced)
+      - Support triangle: Rear wheels at x=-0.084m, Caster at x=0.12m (0.204m span)
+      - Overall COM slightly backward prevents backward tilt while maintaining stability
+    -->
+    <xacro:inertial_box mass="2.0" x="0.336" y="0.335" z="0.104">
+      <origin xyz="-0.02 0 0.085" rpy="0 0 0"/>
     </xacro:inertial_box>
   </link>
 
-  <!-- LEFT WHEEL -->
+  <!-- LEFT WHEEL - EXTERNAL MOUNTING, HALF-EMBEDDED, positioned halfway between middle and back -->
+  <!-- 
+    Wheel positioning - EXTERNAL to chassis, half-embedded:
+    - Wheel radius: 0.033m (1.3 inches)
+    - Wheel width: 0.02m (thickness)
+    - Chassis width (Y): 0.335m, half-width = 0.1675m
+    - Position: x=-0.084m (halfway between middle x=0m and back x=-0.168m), y=0.20m (EXTERNAL - outside chassis)
+    - Chassis extends from x=-0.168m to x=+0.168m
+    - Wheel center at z=0.033m (wheel radius) ensures ground contact
+    - Wheel bottom at z=0m (ground), wheel top at z=0.066m
+    - Chassis bottom at z=0.033m (wheel center) for 50% embedding
+    - Half wheel below chassis (z=0-0.033m), half above (z=0.033-0.066m)
+    - CRITICAL: Cylinder rotated 90° around X-axis to stand VERTICALLY (not flat)
+    - Rotation axis: Y-axis (wheel spins around Y to move forward)
+  -->
+  <!-- FIXED: Moved rear wheels forward to x=-0.084m (halfway between middle and back) -->
   <joint name="left_wheel_joint" type="continuous">
     <parent link="base_link"/>
     <child link="left_wheel"/>
-    <origin xyz="0 0.175 0" rpy="-${pi_const/2} 0 0"/>
-    <axis xyz="0 0 1"/>
+    <origin xyz="-0.084 0.20 0.033" rpy="0 0 0"/>
+    <!-- Rotation axis: Y-axis - positive rotation moves robot forward -->
+    <axis xyz="0 1 0"/>
   </joint>
 
   <link name="left_wheel">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <!-- Rotate 90° around X-axis (π/2 = 1.5708 rad) to make wheel VERTICAL and rollable -->
+      <!-- This makes the cylinder stand upright so it can roll like a real wheel -->
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
       <geometry>
-        <cylinder length="0.04" radius="0.05"/>
+        <!-- Cylinder: length=0.02m (width/thickness), radius=0.033m - Roomba 105 specs -->
+        <!-- After X-axis rotation, cylinder stands vertically (Z-axis) -->
+        <cylinder length="0.02" radius="0.033"/>
       </geometry>
       <material name="blue"/>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <!-- Same rotation for collision geometry - wheel must be vertical -->
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
       <geometry>
-        <cylinder length="0.04" radius="0.05"/>
+        <cylinder length="0.02" radius="0.033"/>
       </geometry>
     </collision>
-    <xacro:inertial_cylinder mass="0.1" length="0.04" radius="0.05">
+    <!-- FIXED: Wheel mass: 0.2kg each (reduced from 0.3kg to prevent rear-heavy balance) -->
+    <!-- Inertia: cylinder with length=0.02m (width), radius=0.033m -->
+    <!-- Note: Inertial frame should NOT be rotated - rotation is only for visual/collision -->
+    <xacro:inertial_cylinder mass="0.2" length="0.02" radius="0.033">
       <origin xyz="0 0 0" rpy="0 0 0"/>
     </xacro:inertial_cylinder>
   </link>
 
-  <!-- RIGHT WHEEL -->
+  <!-- RIGHT WHEEL - EXTERNAL MOUNTING, HALF-EMBEDDED, positioned halfway between middle and back -->
+  <!-- 
+    Wheel positioning - EXTERNAL to chassis, half-embedded: Same as left wheel, mirrored on Y-axis
+    - Wheel radius: 0.033m (1.3 inches)
+    - Wheel width: 0.02m (thickness)
+    - Position: x=-0.084m (halfway between middle x=0m and back x=-0.168m), y=-0.20m (EXTERNAL - outside chassis)
+    - Chassis extends from x=-0.168m to x=+0.168m
+    - Wheel center at z=0.033m (wheel radius) ensures ground contact
+    - Wheel bottom at z=0m (ground), wheel top at z=0.066m
+    - Chassis bottom at z=0.033m (wheel center) for 50% embedding
+    - Half wheel below chassis (z=0-0.033m), half above (z=0.033-0.066m)
+    - CRITICAL: Cylinder rotated 90° around X-axis to stand VERTICALLY (not flat)
+    - Rotation axis: Y-axis (0 1 0) - same as left wheel, Gazebo plugin handles differential drive
+  -->
+  <!-- FIXED: Moved rear wheels forward to x=-0.084m (halfway between middle and back) -->
+  <!-- FIXED: Both wheels use same axis direction (0 1 0) to prevent spinning in circles -->
   <joint name="right_wheel_joint" type="continuous">
     <parent link="base_link"/>
     <child link="right_wheel"/>
-    <origin xyz="0 -0.175 0" rpy="${pi_const/2} 0 0"/>
-    <axis xyz="0 0 -1"/>
+    <origin xyz="-0.084 -0.20 0.033" rpy="0 0 0"/>
+    <!-- Rotation axis: Y-axis - same as left wheel (0 1 0), Gazebo plugin handles differential drive logic -->
+    <axis xyz="0 1 0"/>
   </joint>
 
   <link name="right_wheel">
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <!-- Rotate 90° around X-axis (π/2 = 1.5708 rad) to make wheel VERTICAL and rollable -->
+      <!-- This makes the cylinder stand upright so it can roll like a real wheel -->
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
       <geometry>
-        <cylinder length="0.04" radius="0.05"/>
+        <!-- Cylinder: length=0.02m (width/thickness), radius=0.033m - Roomba 105 specs -->
+        <!-- After X-axis rotation, cylinder stands vertically (Z-axis) -->
+        <cylinder length="0.02" radius="0.033"/>
       </geometry>
       <material name="blue"/>
     </visual>
     <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <!-- Same rotation for collision geometry - wheel must be vertical -->
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
       <geometry>
-        <cylinder length="0.04" radius="0.05"/>
+        <cylinder length="0.02" radius="0.033"/>
       </geometry>
     </collision>
-    <xacro:inertial_cylinder mass="0.1" length="0.04" radius="0.05">
+    <!-- FIXED: Wheel mass: 0.2kg each (reduced from 0.3kg to prevent rear-heavy balance) -->
+    <!-- Inertia: cylinder with length=0.02m (width), radius=0.033m -->
+    <!-- Note: Inertial frame should NOT be rotated - rotation is only for visual/collision -->
+    <xacro:inertial_cylinder mass="0.2" length="0.02" radius="0.033">
       <origin xyz="0 0 0" rpy="0 0 0"/>
     </xacro:inertial_cylinder>
   </link>
 
-  <!-- CASTER WHEEL -->
+  <!-- CASTER WHEEL - Front center caster wheel (proper Roomba configuration) -->
+  <!-- 
+    FIXED: Caster wheel positioning - Closer to chassis, properly attached to base_link:
+    - Position: x=0.12m (closer to chassis, was 0.15m), y=0m (center), z=0.025m (touching ground)
+    - Chassis extends from x=-0.168m to x=+0.168m, so x=0.12m is at front but closer
+    - Caster center at z=0.025m (slightly below chassis bottom at z=0.033m to ensure ground contact)
+    - Relative to base_link: z = 0.025m (absolute position)
+    - Caster radius: 0.025m
+    - FIXED: Attached to base_link (not chassis) for stronger connection and proper physics
+    - FIXED: Increased mass to 0.4kg for better front support
+    - CRITICAL: Using fixed joint with enhanced Gazebo properties to prevent detachment
+  -->
   <joint name="caster_wheel_joint" type="fixed">
-    <parent link="chassis"/>
+    <parent link="base_link"/>
     <child link="caster_wheel"/>
-    <origin xyz="0.24 0 0" rpy="0 0 0"/>
+    <origin xyz="0.12 0 0.025" rpy="0 0 0"/>
   </joint>
 
   <link name="caster_wheel">
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <sphere radius="0.05"/>
+        <!-- Larger caster wheel - matching assignment brief -->
+        <sphere radius="0.025"/>
       </geometry>
       <material name="black"/>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <sphere radius="0.05"/>
+        <sphere radius="0.025"/>
       </geometry>
     </collision>
-    <xacro:inertial_sphere mass="0.1" radius="0.05">
+    <!-- FIXED: Caster mass: 0.4kg (increased for better front support to prevent backward tilt) -->
+    <xacro:inertial_sphere mass="0.4" radius="0.025">
       <origin xyz="0 0 0" rpy="0 0 0"/>
     </xacro:inertial_sphere>
   </link>
@@ -136,6 +233,8 @@
   <!-- Gazebo plugins for differential drive -->
   <gazebo reference="base_link">
   </gazebo>
+  
+  <!-- Remove joint properties from caster - not needed for fixed joint -->
 
   <gazebo reference="chassis">
     <material>Gazebo/White</material>
@@ -179,6 +278,22 @@
         <mu2>0.01</mu2>
       </ode>
     </friction>
+    <!-- Prevent self-collision issues that might cause detachment -->
+    <selfCollide>false</selfCollide>
+  </gazebo>
+  
+  <!-- FIXED: Strengthen caster joint to prevent detachment - enhanced properties -->
+  <gazebo reference="caster_wheel_joint">
+    <preserveWorldPose>true</preserveWorldPose>
+    <implicitSpringDamper>true</implicitSpringDamper>
+    <provideFeedback>true</provideFeedback>
+    <physics>
+      <ode>
+        <implicit_spring_damper>true</implicit_spring_damper>
+        <cfm>0.00001</cfm>
+        <erp>0.2</erp>
+      </ode>
+    </physics>
   </gazebo>
 
 

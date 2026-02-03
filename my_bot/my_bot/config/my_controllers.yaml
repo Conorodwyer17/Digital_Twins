@@ -18,7 +18,10 @@ diff_cont:
 
     left_wheel_names: ['left_wheel_joint']
     right_wheel_names: ['right_wheel_joint']
-    wheel_separation: 0.297
+    # Wheel separation: 0.40m (matches actual wheel positions: y=±0.20m, so 0.20 * 2 = 0.40m, external mounting)
+    # Wheel positions: x=-0.12m (at rear of chassis), y=±0.20m
+    # Must match gazebo_control.xacro wheel_separation value
+    wheel_separation: 0.40
     wheel_radius: 0.033
 
     use_stamped_vel: false
