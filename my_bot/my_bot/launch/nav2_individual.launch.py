@@ -27,6 +27,7 @@ def generate_launch_description():
         package='nav2_map_server',
         executable='map_server',
         name='map_server',
+        namespace='',
         output='screen',
         parameters=[{
             'use_sim_time': use_sim_time,
@@ -39,6 +40,7 @@ def generate_launch_description():
         package='nav2_amcl',
         executable='amcl',
         name='amcl',
+        namespace='',
         output='screen',
         parameters=[nav2_params_file]
     )
@@ -48,6 +50,7 @@ def generate_launch_description():
         package='nav2_planner',
         executable='planner_server',
         name='planner_server',
+        namespace='',
         output='screen',
         parameters=[nav2_params_file]
     )
@@ -57,6 +60,7 @@ def generate_launch_description():
         package='nav2_controller',
         executable='controller_server',
         name='controller_server',
+        namespace='',
         output='screen',
         parameters=[nav2_params_file]
     )
@@ -66,6 +70,7 @@ def generate_launch_description():
         package='nav2_bt_navigator',
         executable='bt_navigator',
         name='bt_navigator',
+        namespace='',
         output='screen',
         parameters=[nav2_params_file]
     )
@@ -75,6 +80,7 @@ def generate_launch_description():
         package='nav2_waypoint_follower',
         executable='waypoint_follower',
         name='waypoint_follower',
+        namespace='',
         output='screen',
         parameters=[nav2_params_file]
     )
@@ -84,6 +90,7 @@ def generate_launch_description():
         package='nav2_smoother',
         executable='smoother_server',
         name='smoother_server',
+        namespace='',
         output='screen',
         parameters=[nav2_params_file]
     )
