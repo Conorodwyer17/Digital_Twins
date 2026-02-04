@@ -15,7 +15,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     package_name = 'my_bot'
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
-    map_file = LaunchConfiguration('map', default=os.path.expanduser('~/kitchen_map.yaml'))
+    map_file = LaunchConfiguration('map', default='/home/ros_user/kitchen_map.yaml')
 
     # Set GAZEBO_MODEL_PATH
     worlds_path = os.path.join(get_package_share_directory(package_name), 'worlds')
@@ -97,7 +97,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true'),
-        DeclareLaunchArgument('map', default_value=os.path.expanduser('~/kitchen_map.yaml')),
+        DeclareLaunchArgument('map', default_value='/home/ros_user/kitchen_map.yaml'),
         SetEnvironmentVariable('GAZEBO_MODEL_PATH', gazebo_model_path),
         rsp,
         gazebo,

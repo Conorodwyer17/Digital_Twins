@@ -14,7 +14,11 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
-    map_file = LaunchConfiguration('map', default=os.path.expanduser('~/kitchen_map.yaml'))
+    map_file_arg = LaunchConfiguration('map', default=os.path.expanduser('~/kitchen_map.yaml'))
+    
+    # Expand user path properly
+    import launch.substitutions
+    from launch.substitutions import PythonExpression
     
     nav2_params_file = os.path.join(
         get_package_share_directory('my_bot'),
@@ -23,7 +27,7 @@ def generate_launch_description():
         'nav2_params.yaml'
     )
     
-    # Map Server
+    # Map Server - use expanded path
     map_server = LifecycleNode(
         package='nav2_map_server',
         executable='map_server',
@@ -32,7 +36,7 @@ def generate_launch_description():
         output='screen',
         parameters=[{
             'use_sim_time': use_sim_time,
-            'yaml_filename': map_file
+            'yaml_filename': map_file_arg
         }]
     )
     
@@ -120,7 +124,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='true',
                              description='Use simulation time'),
-        DeclareLaunchArgument('map', default_value=os.path.expanduser('~/kitchen_map.yaml'),
+        DeclareLaunchArgument('map', default_value='/home/ros_user/kitchen_map.yaml',
                              description='Full path to map yaml file'),
         map_server,
         amcl,
