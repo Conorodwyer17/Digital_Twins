@@ -14,11 +14,7 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
-    map_file_arg = LaunchConfiguration('map', default=os.path.expanduser('~/kitchen_map.yaml'))
-    
-    # Expand user path properly
-    import launch.substitutions
-    from launch.substitutions import PythonExpression
+    map_file_arg = LaunchConfiguration('map', default='/home/ros_user/kitchen_map.yaml')
     
     nav2_params_file = os.path.join(
         get_package_share_directory('my_bot'),
