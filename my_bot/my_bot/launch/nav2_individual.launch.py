@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-Nav2 Launch File for my_bot
-Launches Nav2 stack for autonomous navigation
-Uses individual nodes approach for better compatibility
+Nav2 Launch File - Using Individual Nodes
+Alternative launch file that launches Nav2 components individually
 """
 
 import os
@@ -71,7 +70,7 @@ def generate_launch_description():
         parameters=[nav2_params_file]
     )
     
-    # Waypoint Follower
+    # Waypoint Follower (optional)
     waypoint_follower = LifecycleNode(
         package='nav2_waypoint_follower',
         executable='waypoint_follower',
@@ -80,7 +79,7 @@ def generate_launch_description():
         parameters=[nav2_params_file]
     )
     
-    # Smoother Server
+    # Velocity Smoother
     smoother_server = LifecycleNode(
         package='nav2_smoother',
         executable='smoother_server',
@@ -111,10 +110,8 @@ def generate_launch_description():
     )
     
     return LaunchDescription([
-        DeclareLaunchArgument('use_sim_time', default_value='true',
-                             description='Use simulation time'),
-        DeclareLaunchArgument('map', default_value=os.path.expanduser('~/kitchen_map.yaml'),
-                             description='Full path to map yaml file'),
+        DeclareLaunchArgument('use_sim_time', default_value='true'),
+        DeclareLaunchArgument('map', default_value=os.path.expanduser('~/kitchen_map.yaml')),
         map_server,
         amcl,
         planner_server,
