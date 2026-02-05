@@ -7,14 +7,17 @@ Uses individual nodes approach for better compatibility
 
 import os
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, TimerAction
+from launch.actions import DeclareLaunchArgument, TimerAction, ExecuteProcess, OpaqueFunction, RegisterEventHandler
+from launch.event_handlers import OnProcessStart
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node, LifecycleNode
-from ament_index_python.packages import get_package_share_directory
+from ament_index_python.packages import get_package_share_directory, get_package_prefix
 
-def generate_launch_description():
+def launch_setup(context, *args, **kwargs):
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
-    map_file_arg = LaunchConfiguration('map', default='/home/ros_user/kitchen_map.yaml')
+    # Get map path and expand ~ if present
+    map_path_raw = context.launch_configurations.get('map', '/home/ros_user/kitchen_map.yaml')
+    map_file_arg = os.path.expanduser(map_path_raw)
     
     nav2_params_file = os.path.join(
         get_package_share_directory('my_bot'),
@@ -96,6 +99,16 @@ def generate_launch_description():
         parameters=[nav2_params_file]
     )
     
+    # Behavior Server (provides spin, backup, wait actions for behavior trees)
+    behavior_server = LifecycleNode(
+        package='nav2_behaviors',
+        executable='behavior_server',
+        name='behavior_server',
+        namespace='',
+        output='screen',
+        parameters=[nav2_params_file]
+    )
+    
     # Lifecycle Manager (manages all lifecycle nodes)
     lifecycle_manager = Node(
         package='nav2_lifecycle_manager',
@@ -105,6 +118,7 @@ def generate_launch_description():
         parameters=[{
             'use_sim_time': use_sim_time,
             'autostart': True,
+            'bond_timeout': 10.0,  # Increase timeout to allow map_server to load map
             'node_names': [
                 'map_server',
                 'amcl',
@@ -112,12 +126,32 @@ def generate_launch_description():
                 'controller_server',
                 'bt_navigator',
                 'waypoint_follower',
-                'smoother_server'
+                'smoother_server',
+                'behavior_server'
             ]
         }]
     )
     
-    return LaunchDescription([
+    # Initial pose publisher (sets AMCL initial pose automatically)
+    # Try installed path first, fallback to source path
+    installed_script = os.path.join(
+        get_package_prefix('my_bot'),
+        'lib', 'my_bot', 'set_initial_pose.py'
+    )
+    # Source path: from share/my_bot go up to workspace, then to my_bot/my_bot/my_bot/scripts
+    source_script = os.path.join(
+        get_package_share_directory('my_bot'),
+        '..', '..', '..', '..', 'my_bot', 'my_bot', 'my_bot', 'scripts', 'set_initial_pose.py'
+    )
+    source_script = os.path.abspath(source_script)
+    # Use installed path if it exists, otherwise use source path
+    script_path = installed_script if os.path.exists(installed_script) else source_script
+    initial_pose_publisher = ExecuteProcess(
+        cmd=['python3', script_path],
+        output='screen'
+    )
+    
+    return [
         DeclareLaunchArgument('use_sim_time', default_value='true',
                              description='Use simulation time'),
         DeclareLaunchArgument('map', default_value='/home/ros_user/kitchen_map.yaml',
@@ -129,5 +163,19 @@ def generate_launch_description():
         bt_navigator,
         waypoint_follower,
         smoother_server,
-        TimerAction(period=2.0, actions=[lifecycle_manager]),
+        behavior_server,
+        # Use event handler to wait for map_server to be ready before starting lifecycle manager
+        # Increased delay to allow map_server to fully initialize and register its services
+        RegisterEventHandler(
+            event_handler=OnProcessStart(
+                target_action=map_server,
+                on_start=[TimerAction(period=8.0, actions=[lifecycle_manager])]
+            )
+        ),
+        TimerAction(period=10.0, actions=[initial_pose_publisher]),
+    ]
+
+def generate_launch_description():
+    return LaunchDescription([
+        OpaqueFunction(function=launch_setup)
     ])

@@ -19,4 +19,14 @@ install(DIRECTORY
   DESTINATION share/${PROJECT_NAME}
 )
 
+# Install Python scripts
+install(PROGRAMS
+  scripts/set_initial_pose.py
+  scripts/activate_nav2_nodes.py
+  scripts/diagnose_bt_navigator.py
+  scripts/get_bt_navigator_errors.py
+  scripts/activate_nav2_nodes.sh
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()

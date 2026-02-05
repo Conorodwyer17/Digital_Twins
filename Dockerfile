@@ -31,14 +31,6 @@ RUN apt-get update && apt-get install -y \
     ros-humble-gazebo-ros-pkgs ros-humble-gazebo-dev \
   && rm -rf /var/lib/apt/lists/*
 
-# Install SLAM and Nav2 packages
-RUN apt-get update && apt-get install -y \
-    ros-humble-slam-toolbox \
-    ros-humble-navigation2 \
-    ros-humble-nav2-bringup \
-    ros-humble-nav2-map-server \
-  && rm -rf /var/lib/apt/lists/*
-
 # Create a non-root user to use inside the container
 RUN groupadd --gid ${USER_GID} ${USERNAME} || true && \
     useradd -m -s /bin/bash --uid ${USER_UID} --gid ${USER_GID} ${USERNAME} || true && \

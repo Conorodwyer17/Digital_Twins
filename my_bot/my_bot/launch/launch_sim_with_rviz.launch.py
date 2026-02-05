@@ -32,7 +32,7 @@ def generate_launch_description():
 
     # Gazebo
     gazebo_params_file = os.path.join(get_package_share_directory(package_name),'config','gazebo_params.yaml')
-    world_file = os.path.join(get_package_share_directory(package_name),'worlds','empty_world.world')
+    world_file = os.path.join(get_package_share_directory(package_name),'worlds','kitchen_dining_world.world')
 
     gazebo = IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([os.path.join(
